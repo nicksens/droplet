@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "449850753086",
+    "project_id": "droplet-8f602",
+    "storage_bucket": "droplet-8f602.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:449850753086:android:ec689e7b4ff8177093116f",
+        "android_client_info": {
+          "package_name": "com.example.droplet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClXO7HNxgzMQ-QcffAgQ6LPZSk88rILF4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
