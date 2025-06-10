@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
-
-// We will create these files in the next step
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
+import 'package:droplet/firebase_options.dart'; // Import konfigurasi Firebase
+import 'package:droplet/screens/splash_screen.dart'; // Import splash screen Anda
 
 void main() async {
-  // Ensure that Flutter bindings are initialized
+  // Pastikan semua binding Flutter sudah siap sebelum menjalankan kode async
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase
+
+  // Inisialisasi Firebase dengan konfigurasi platform yang benar
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -21,45 +19,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Taman Sehat',
-      debugShowCheckedModeBanner: false, // Removes the debug banner
+      title: 'Droplet - Water Tracker',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
+        fontFamily:
+            'Roboto', // Pastikan Anda sudah menambahkan font ini jika diperlukan
       ),
-      // The new home is our AuthWrapper
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-// This widget will check the authentication state
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // StreamBuilder listens to changes in the authentication state
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // 1. If connection is still loading, show a progress indicator
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        // 2. If user is logged in (snapshot has data)
-        if (snapshot.hasData) {
-          // Go to the Home Screen
-          return const HomeScreen();
-        }
-
-        // 3. If user is not logged in
-        // Go to the Login Screen
-        return const LoginScreen();
-      },
+      // Aplikasi selalu dimulai dari SplashScreen
+      home: const SplashScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

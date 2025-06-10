@@ -12,17 +12,37 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final List<String> plantEmojis = ['🌱', '🌿', '🌳', '🌲'];
   int currentStreak = 0;
   bool targetAchievedToday = false;
+  late AnimationController _celebrationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
+    _celebrationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _celebrationController, curve: Curves.elasticOut),
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.1).animate(
+      CurvedAnimation(parent: _celebrationController, curve: Curves.easeInOut),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       DailyService.checkEndOfDay();
     });
+  }
+
+  @override
+  void dispose() {
+    _celebrationController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeDay() async {
@@ -242,97 +262,388 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showCelebration(int plantLevel, int newStreak) {
     final plantNames = ['Benih', 'Tunas', 'Pohon Muda', 'Pohon Dewasa'];
 
+    _celebrationController.forward();
+
     showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.8),
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                plantEmojis[plantLevel],
-                style: const TextStyle(fontSize: 80),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '🎉 Selamat! 🎉',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF3C8CE7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Target harian tercapai!\n${plantNames[plantLevel]} telah ditambahkan ke taman Anda!',
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Streak: $newStreak hari',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Lanjutkan'),
+        return AnimatedBuilder(
+          animation: _celebrationController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Transform.rotate(
+                angle: _rotationAnimation.value,
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                ),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3C8CE7),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF4CAF50),
+                          Color(0xFF81C784),
+                          Color(0xFFA5D6A7),
+                        ],
                       ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const MyGardenScreen(),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                          offset: const Offset(0, 10),
                         ),
-                      );
-                    },
-                    child: const Text('Lihat Taman'),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header with confetti effect
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(30),
+                              topRight: Radius.circular(30),
+                            ),
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFFFD700), Color(0xFFFFA726)],
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // Animated confetti emojis
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildFloatingEmoji('🎉', 0.5),
+                                  _buildFloatingEmoji('✨', 1.0),
+                                  _buildFloatingEmoji('🎊', 0.7),
+                                  _buildFloatingEmoji('🌟', 1.2),
+                                  _buildFloatingEmoji('🎉', 0.8),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'SELAMAT!',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 2,
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(2, 2),
+                                      blurRadius: 4,
+                                      color: Colors.black26,
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Main content
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            children: [
+                              // Plant with glow effect
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      Colors.white.withOpacity(0.3),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.white.withOpacity(0.5),
+                                      blurRadius: 20,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    plantEmojis[plantLevel],
+                                    style: const TextStyle(fontSize: 80),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Achievement text
+                              Text(
+                                'Target Harian Tercapai!',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      offset: const Offset(1, 1),
+                                      blurRadius: 2,
+                                      color: Colors.black.withOpacity(0.3),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+
+                              Text(
+                                '${plantNames[plantLevel]} telah ditambahkan\nke taman Anda!',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Streak display with fire animation
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Animated fire emoji
+                                    AnimatedBuilder(
+                                      animation: _celebrationController,
+                                      builder: (context, child) {
+                                        return Transform.scale(
+                                          scale:
+                                              1.0 +
+                                              (0.2 * _scaleAnimation.value),
+                                          child: const Text(
+                                            '🔥',
+                                            style: TextStyle(fontSize: 28),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'STREAK BARU!',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white.withOpacity(
+                                              0.9,
+                                            ),
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                        Text(
+                                          '$newStreak Hari Berturut-turut',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Motivational message
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: Text(
+                                  _getMotivationalMessage(newStreak),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontStyle: FontStyle.italic,
+                                    height: 1.3,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Action buttons
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(25),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: TextButton(
+                                    onPressed: () {
+                                      _celebrationController.reset();
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text(
+                                      'Lanjutkan',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Colors.white, Colors.white],
+                                    ),
+                                    borderRadius: BorderRadius.circular(25),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      _celebrationController.reset();
+                                      Navigator.of(context).pop();
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) =>
+                                                  const MyGardenScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.park,
+                                          color: Color(0xFF4CAF50),
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Lihat Taman',
+                                          style: TextStyle(
+                                            color: Color(0xFF4CAF50),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  Widget _buildFloatingEmoji(String emoji, double delay) {
+    return AnimatedBuilder(
+      animation: _celebrationController,
+      builder: (context, child) {
+        final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: _celebrationController,
+            curve: Interval(delay * 0.2, 1.0, curve: Curves.bounceOut),
+          ),
+        );
+        return Transform.translate(
+          offset: Offset(0, -20 * animation.value),
+          child: Transform.rotate(
+            angle: 0.5 * animation.value,
+            child: Opacity(
+              opacity: animation.value,
+              child: Text(emoji, style: const TextStyle(fontSize: 20)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getMotivationalMessage(int streak) {
+    if (streak >= 30) return "Luar biasa! Anda adalah master hidrasi! 🏆";
+    if (streak >= 21)
+      return "Kebiasaan sehat sudah terbentuk! Terus pertahankan! 💪";
+    if (streak >= 14) return "Dua minggu berturut-turut! Anda hebat! 🌟";
+    if (streak >= 7)
+      return "Seminggu penuh! Tubuh Anda pasti berterima kasih! 🙏";
+    if (streak >= 3) return "Konsistensi adalah kunci! Terus semangat! 🚀";
+    return "Awal yang bagus! Mari bangun kebiasaan sehat! 💚";
   }
 
   // Manual trigger for end of day (for testing)

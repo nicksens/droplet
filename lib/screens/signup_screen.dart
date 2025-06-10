@@ -18,12 +18,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
 
   Future<void> signUp() async {
-    // Validasi password
+    // Validasi password tidak berubah
     if (_passwordController.text.trim() !=
         _confirmPasswordController.text.trim()) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Password tidak cocok!'),
+          content: const Text('Password dan konfirmasi password tidak cocok!'),
           backgroundColor: Colors.red.shade400,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -39,17 +40,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
+      // 1. Buat user di Authentication
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
 
+      // ================================================================
+      // ==> BAGIAN YANG HILANG & PERLU DITAMBAHKAN ADA DI SINI <==
+      // 2. Buat dokumen profil untuk user baru di Firestore
+      // ================================================================
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(
-            userCredential.user!.uid,
-          ) // Gunakan UID dari user yang baru dibuat
+          .doc(userCredential.user!.uid)
           .set({
             'email': _emailController.text.trim(),
             'dailyGoal': 8, // Set target awal default
@@ -58,6 +62,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               'yyyy-MM-dd',
             ).format(DateTime.now()), // Tandai hari ini
           });
+      // ================================================================
+
+      // Jika berhasil, AuthWrapper akan otomatis mengarahkan ke HomeScreen.
+      // Navigator.pop() tidak lagi diperlukan karena state berubah.
+      // Namun, jika Anda ingin kembali ke login screen dulu, baris ini bisa tetap ada.
       if (mounted) Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -105,13 +114,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                // Back Button
+                // Tombol Kembali
                 Row(
                   children: [
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(
-                        Icons.arrow_back_ios,
+                        Icons.arrow_back_ios_new,
                         color: Colors.white,
                       ),
                     ),
@@ -119,163 +128,128 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
 
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // App Logo/Title
-                      const Icon(
-                        Icons.water_drop,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Bergabung dengan Droplet',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
+                  child: SingleChildScrollView(
+                    // Tambahkan SingleChildScrollView agar tidak overflow
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Logo dan Judul
+                        const Icon(
+                          Icons.water_drop,
+                          size: 80,
                           color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Mulai perjalanan hidup sehat Anda!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      const SizedBox(height: 48),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Bergabung dengan Droplet',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Mulai perjalanan hidup sehat Anda!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                        const SizedBox(height: 48),
 
-                      // Email Input
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
+                        // Input Email
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: TextField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(20),
+                              labelStyle: TextStyle(color: Colors.grey),
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.all(20),
-                            labelStyle: TextStyle(color: Colors.grey),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // Password Input
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
+                        // Input Password
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(20),
+                              labelStyle: TextStyle(color: Colors.grey),
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock_outline),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.all(20),
-                            labelStyle: TextStyle(color: Colors.grey),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // Confirm Password Input
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
+                        // Input Konfirmasi Password
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: TextField(
+                            controller: _confirmPasswordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Konfirmasi Password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(20),
+                              labelStyle: TextStyle(color: Colors.grey),
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _confirmPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Konfirmasi Password',
-                            prefixIcon: Icon(Icons.lock_outline),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.all(20),
-                            labelStyle: TextStyle(color: Colors.grey),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-                      // Sign Up Button
-                      Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.white, Colors.white],
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
+                        // Tombol Daftar
+                        SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : signUp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF3C8CE7),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
                             ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : signUp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                          ),
-                          child:
-                              _isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF3C8CE7),
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Daftar Sekarang',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  )
-                                  : const Text(
-                                    'Daftar Sekarang',
-                                    style: TextStyle(
-                                      color: Color(0xFF3C8CE7),
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
