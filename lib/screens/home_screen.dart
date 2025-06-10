@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../services/daily_service.dart';
 import 'my_garden_screen.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -33,10 +34,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _rotationAnimation = Tween<double>(begin: 0.0, end: 0.1).animate(
       CurvedAnimation(parent: _celebrationController, curve: Curves.easeInOut),
     );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      DailyService.checkEndOfDay();
-    });
   }
 
   @override
@@ -173,9 +170,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         .collection('dailyProgress')
         .doc(todayDate);
 
+    // We don't need setState() here because StreamBuilder will handle UI updates.
+    // The logic is now inside a transaction to be safer.
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
-      int newIntake = snapshot.exists ? snapshot.data()!['waterIntake'] + 1 : 1;
+
+      // Get the water intake BEFORE adding a new one
+      final int oldIntake = snapshot.exists ? snapshot.data()!['waterIntake'] : 0;
+
+      // If the goal is already met, do nothing.
+      if (oldIntake >= dailyGoal) {
+          print("Target already met for today. No action taken.");
+          return;
+      }
+
+      final int newIntake = oldIntake + 1;
 
       double progress = newIntake / dailyGoal;
       int newPlantLevel = 0;
@@ -191,17 +200,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'waterIntake': newIntake,
         'plantLevel': newPlantLevel,
         'date': todayDate,
-        'processed': false,
+        'processed': false, // You might want to use this flag later
       }, SetOptions(merge: true));
 
-      // Check if target just achieved
-      if (newIntake >= dailyGoal && !targetAchievedToday) {
-        // Target just achieved! Process immediately
+      // *** THE CRITICAL FIX IS HERE ***
+      // Check if the goal was crossed in THIS specific transaction.
+      final bool targetJustAchieved = oldIntake < dailyGoal && newIntake >= dailyGoal;
+
+      if (targetJustAchieved) {
+        // The target was just met, so we process the reward.
+        // This logic will only run ONCE per day.
         await _processTargetAchievement(newIntake, newPlantLevel, dailyGoal);
       }
     });
-
-    setState(() {});
   }
 
   Future<void> _processTargetAchievement(
@@ -245,12 +256,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             'currentStreak': newStreak,
             'lastStreakUpdate': DateFormat('yyyy-MM-dd').format(today),
           });
-
-      // Update local state
-      setState(() {
-        currentStreak = newStreak;
-        targetAchievedToday = true;
-      });
 
       // Show celebration
       _showCelebration(plantLevel, newStreak);
@@ -583,12 +588,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                           size: 20,
                                         ),
                                         SizedBox(width: 8),
-                                        Text(
-                                          'Lihat Taman',
-                                          style: TextStyle(
-                                            color: Color(0xFF4CAF50),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                        Expanded(
+                                          child: Text(
+                                            'Lihat Taman',
+                                            style: TextStyle(
+                                              color: Color(0xFF4CAF50),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
                                         ),
                                       ],

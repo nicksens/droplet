@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../screens/home_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -67,7 +68,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Jika berhasil, AuthWrapper akan otomatis mengarahkan ke HomeScreen.
       // Navigator.pop() tidak lagi diperlukan karena state berubah.
       // Namun, jika Anda ingin kembali ke login screen dulu, baris ini bisa tetap ada.
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
